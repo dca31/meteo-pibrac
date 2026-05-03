@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Météo Pibrac</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --sky: #e8f4fd;
+    --sky-mid: #c9e8f7;
+    --blue: #2563eb;
+    --blue-light: #3b82f6;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --card: #ffffff;
+    --border: rgba(37,99,235,0.1);
+    --shadow: 0 2px 16px rgba(37,99,235,0.08);
+    --accent: #0ea5e9;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: linear-gradient(160deg, #e8f4fd 0%, #f0f9ff 40%, #fafeff 100%);
+    min-height: 100vh;
+    color: var(--text);
+    padding: 12px;
+  }
+
+  .widget {
+    max-width: 480px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* CURRENT */
+  .card-current {
+    background: linear-gradient(135deg, #1d4ed8 0%, #0284c7 60%, #0ea5e9 100%);
+    border-radius: 20px;
+    padding: 20px 22px 18px;
+    color: white;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(29,78,216,0.25);
+  }
+  .card-current::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 160px; height: 160px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 50%;
+  }
+  .card-current::after {
+    content: '';
+    position: absolute;
+    bottom: -30px; left: -20px;
+    width: 120px; height: 120px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 50%;
+  }
+  .current-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .location {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 500;
+    opacity: 0.95;
+    letter-spacing: 0.3px;
+  }
+  .current-date {
+    font-size: 11px;
+    opacity: 0.7;
+    margin-top: 2px;
+    font-weight: 300;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .current-icon {
+    font-size: 48px;
+    line-height: 1;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
+  }
+  .current-temp {
+    font-size: 58px;
+    font-weight: 300;
+    line-height: 1;
+    margin-top: 6px;
+    letter-spacing: -2px;
+  }
+  .current-temp sup {
+    font-size: 24px;
+    font-weight: 400;
+    vertical-align: super;
+    letter-spacing: 0;
+  }
+  .current-desc {
+    font-size: 14px;
+    opacity: 0.85;
+    margin-top: 2px;
+    font-weight: 400;
+    text-transform: capitalize;
+  }
+  .current-stats {
+    display: flex;
+    gap: 16px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.2);
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .stat-label {
+    font-size: 10px;
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 500;
+  }
+  .stat-val {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  /* HOURLY */
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+  .hourly-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .hourly-scroll::-webkit-scrollbar { display: none; }
+  .hour-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    min-width: 52px;
+    padding: 10px 6px;
+    border-radius: 12px;
+    background: var(--sky);
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .hour-item.now {
+    background: linear-gradient(135deg, #2563eb, #0ea5e9);
+    color: white;
+  }
+  .hour-time {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.3px;
+  }
+  .hour-item.now .hour-time { color: rgba(255,255,255,0.8); }
+  .hour-icon { font-size: 20px; line-height: 1; }
+  .hour-temp {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .hour-item.now .hour-temp { color: white; }
+  .hour-rain {
+    font-size: 10px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .hour-item.now .hour-rain { color: rgba(255,255,255,0.85); }
+
+  /* 5 DAYS */
+  .day-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .day-item {
+    display: flex;
+    align-items: center;
+    padding: 9px 4px;
+    border-radius: 10px;
+    transition: background 0.15s;
+  }
+  .day-item:hover { background: var(--sky); }
+  .day-name {
+    font-size: 13px;
+    font-weight: 500;
+    width: 80px;
+    color: var(--text);
+    text-transform: capitalize;
+  }
+  .day-icon { font-size: 22px; flex: 1; text-align: center; }
+  .day-rain {
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 500;
+    width: 36px;
+    text-align: right;
+  }
+  .day-temps {
+    display: flex;
+    gap: 6px;
+    width: 72px;
+    justify-content: flex-end;
+    align-items: center;
+  }
+  .day-max {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .day-min {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+  .temp-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--sky-mid);
+    flex: 1;
+    margin: 0 8px;
+    position: relative;
+    overflow: hidden;
+  }
+  .temp-bar-fill {
+    position: absolute;
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #0ea5e9, #f97316);
+  }
+
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .error {
+    text-align: center;
+    padding: 20px;
+    color: #ef4444;
+    font-size: 13px;
+  }
+  .update-time {
+    text-align: center;
+    font-size: 10px;
+    color: var(--text-muted);
+    opacity: 0.6;
+    padding-top: 4px;
+    letter-spacing: 0.5px;
+  }
+</style>
+</head>
+<body>
+<div class="widget" id="widget">
+  <div class="loading">⛅ Chargement de la météo...</div>
+</div>
+
+<script>
+// Coordonnées Pibrac (43.6169, 1.2869)
+const LAT = 43.6169;
+const LON = 1.2869;
+const CITY = "Pibrac";
+
+const WMO_ICONS = {
+  0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️',
+  45:'🌫️', 48:'🌫️',
+  51:'🌦️', 53:'🌦️', 55:'🌧️',
+  61:'🌧️', 63:'🌧️', 65:'🌧️',
+  71:'🌨️', 73:'🌨️', 75:'❄️',
+  77:'🌨️',
+  80:'🌦️', 81:'🌧️', 82:'⛈️',
+  85:'🌨️', 86:'❄️',
+  95:'⛈️', 96:'⛈️', 99:'⛈️'
+};
+
+const WMO_DESC = {
+  0:'Ensoleillé', 1:'Peu nuageux', 2:'Partiellement nuageux', 3:'Couvert',
+  45:'Brouillard', 48:'Brouillard givrant',
+  51:'Bruine légère', 53:'Bruine', 55:'Bruine forte',
+  61:'Pluie légère', 63:'Pluie', 65:'Pluie forte',
+  71:'Neige légère', 73:'Neige', 75:'Neige forte',
+  77:'Grains de neige',
+  80:'Averses légères', 81:'Averses', 82:'Averses violentes',
+  85:'Averses de neige', 86:'Averses de neige fortes',
+  95:'Orage', 96:'Orage avec grêle', 99:'Orage fort avec grêle'
+};
+
+const DAYS_FR = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+const MONTHS_FR = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+
+function icon(code) { return WMO_ICONS[code] || '🌡️'; }
+function desc(code) { return WMO_DESC[code] || ''; }
+function round(v) { return Math.round(v); }
+
+async function fetchWeather() {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}`
+    + `&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weathercode,precipitation`
+    + `&hourly=temperature_2m,weathercode,precipitation_probability`
+    + `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max`
+    + `&timezone=Europe%2FParis&forecast_days=6`;
+  const res = await fetch(url);
+  return res.json();
+}
+
+function buildHourly(data) {
+  const now = new Date();
+  const nowH = now.getHours();
+  const times = data.hourly.time;
+  const temps = data.hourly.temperature_2m;
+  const codes = data.hourly.weathercode;
+  const rains = data.hourly.precipitation_probability;
+
+  // Find current hour index
+  let startIdx = times.findIndex(t => {
+    const d = new Date(t);
+    return d.getDate() === now.getDate() && d.getHours() >= nowH;
+  });
+  if (startIdx < 0) startIdx = 0;
+
+  let html = '';
+  for (let i = startIdx; i < Math.min(startIdx + 12, times.length); i++) {
+    const d = new Date(times[i]);
+    const h = d.getHours();
+    const isNow = i === startIdx;
+    const label = isNow ? 'Maint.' : `${h}h`;
+    html += `
+      <div class="hour-item${isNow ? ' now' : ''}">
+        <span class="hour-time">${label}</span>
+        <span class="hour-icon">${icon(codes[i])}</span>
+        <span class="hour-temp">${round(temps[i])}°</span>
+        <span class="hour-rain">${rains[i]}%</span>
+      </div>`;
+  }
+  return html;
+}
+
+function buildDaily(data) {
+  const now = new Date();
+  const dates = data.daily.time;
+  const codes = data.daily.weathercode;
+  const maxT = data.daily.temperature_2m_max;
+  const minT = data.daily.temperature_2m_min;
+  const rains = data.daily.precipitation_probability_max;
+
+  // Global min/max for bar scaling
+  const allMax = Math.max(...maxT);
+  const allMin = Math.min(...minT);
+  const range = allMax - allMin || 1;
+
+  let html = '';
+  for (let i = 0; i < Math.min(5, dates.length); i++) {
+    const d = new Date(dates[i]);
+    const isToday = d.toDateString() === now.toDateString();
+    const dayLabel = isToday ? "Aujourd'hui" : DAYS_FR[d.getDay()];
+    
+    const barLeft = ((minT[i] - allMin) / range * 100).toFixed(0);
+    const barWidth = ((maxT[i] - minT[i]) / range * 100).toFixed(0);
+
+    html += `
+      <div class="day-item">
+        <span class="day-name">${dayLabel}</span>
+        <span class="day-icon">${icon(codes[i])}</span>
+        <span class="day-rain">${rains[i]}%</span>
+        <div class="temp-bar">
+          <div class="temp-bar-fill" style="left:${barLeft}%;width:${barWidth}%"></div>
+        </div>
+        <div class="day-temps">
+          <span class="day-min">${round(minT[i])}°</span>
+          <span class="day-max">${round(maxT[i])}°</span>
+        </div>
+      </div>`;
+  }
+  return html;
+}
+
+async function render() {
+  const widget = document.getElementById('widget');
+  try {
+    const data = await fetchWeather();
+    const c = data.current;
+    const now = new Date();
+    const dateStr = `${DAYS_FR[now.getDay()]} ${now.getDate()} ${MONTHS_FR[now.getMonth()]}`;
+    const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+    widget.innerHTML = `
+      <div class="card-current">
+        <div class="current-top">
+          <div>
+            <div class="location">📍 ${CITY}</div>
+            <div class="current-date">${dateStr} · ${timeStr}</div>
+          </div>
+          <div class="current-icon">${icon(c.weathercode)}</div>
+        </div>
+        <div class="current-temp">${round(c.temperature_2m)}<sup>°C</sup></div>
+        <div class="current-desc">${desc(c.weathercode)} · Ressenti ${round(c.apparent_temperature)}°C</div>
+        <div class="current-stats">
+          <div class="stat">
+            <span class="stat-label">Humidité</span>
+            <span class="stat-val">${c.relative_humidity_2m}%</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Vent</span>
+            <span class="stat-val">${round(c.wind_speed_10m)} km/h</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Pluie</span>
+            <span class="stat-val">${c.precipitation} mm</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Prochaines heures</div>
+        <div class="hourly-scroll">${buildHourly(data)}</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Prévisions 5 jours</div>
+        <div class="day-list">${buildDaily(data)}</div>
+      </div>
+
+      <div class="update-time">Mis à jour à ${timeStr} · Open-Meteo</div>
+    `;
+  } catch(e) {
+    widget.innerHTML = `<div class="error">Impossible de charger la météo.<br>${e.message}</div>`;
+  }
+}
+
+render();
+setInterval(render, 10 * 60 * 1000); // refresh toutes les 10 min
+</script>
+</body>
+</html>
